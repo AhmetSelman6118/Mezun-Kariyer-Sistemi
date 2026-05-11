@@ -1,12 +1,8 @@
--- PROJE: Mezun ve Kariyer Takip Sistemi
--- AÇIKLAMA: Bu veritabanı 3NF normalizasyon kurallarına göre tasarlanmıştır.
--- ============================================================================
+DROP TABLE IF EXISTS Career_History;
+DROP TABLE IF EXISTS Alumni;
+DROP TABLE IF EXISTS Company;
+DROP TABLE IF EXISTS Department;
 
-USE AlumniCareerSystem;
-
--- ==========================================
--- 1. DDL: TABLOLARIN OLUŞTURULMASI (CREATE)
--- ==========================================
 CREATE TABLE Department (
     department_id INT PRIMARY KEY, 
     department_name VARCHAR(100) NOT NULL 
@@ -41,11 +37,6 @@ CREATE TABLE Career_History (
     FOREIGN KEY (company_id) REFERENCES Company(company_id)
 );
 
--- ==========================================
--- 2. DML: TEST VERİLERİNİN EKLENMESİ (INSERT)
--- ==========================================
-
--- Bölümler
 INSERT INTO Department (department_id, department_name) VALUES
 (1, 'Data Science'),
 (2, 'Computer Engineering'),
@@ -55,7 +46,6 @@ INSERT INTO Department (department_id, department_name) VALUES
 (6, 'Electrical and Electronics Engineering'),
 (7, 'Software Engineering');
 
--- Şirketler
 INSERT INTO Company (company_id, company_name, sector) VALUES
 (101, 'TechData A.S.', 'Information Technology'),
 (102, 'Garanti Bankasi', 'Finance'),
@@ -68,7 +58,6 @@ INSERT INTO Company (company_id, company_name, sector) VALUES
 (109, 'Siemens', 'Electronics'),
 (110, 'Yemeksepeti', 'E-Commerce');
 
--- Mezunlar
 INSERT INTO Alumni (alumni_id, first_name, last_name, contact_info, graduation_year, gpa, department_id) VALUES
 (1, 'Elif', 'Tufek', 'elif@email.com', 2025, 3.80, 1),
 (2, 'Ayse', 'Kaya', 'ayse.k@email.com', 2024, 3.20, 2),
@@ -103,9 +92,24 @@ INSERT INTO Alumni (alumni_id, first_name, last_name, contact_info, graduation_y
 (31, 'Furkan', 'Avci', 'furkan.a@email.com', 2023, 3.05, 1),
 (32, 'Gizem', 'Tas', 'gizem.t@email.com', 2024, 3.90, 3),
 (33, 'Hasan', 'Uyar', 'hasan.u@email.com', 2021, 2.90, 4),
-(34, 'Ilker', 'Guler', 'ilker.g@email.com', 2020, 3.40, 6);
+(34, 'Ilker', 'Guler', 'ilker.g@email.com', 2020, 3.40, 6),
+(35, 'Buse', 'Kaya', 'buse.k@email.com', 2023, 3.40, 2),
+(36, 'Can', 'Ozturk', 'can.o@email.com', 2024, 2.85, 3),
+(37, 'Derya', 'Akin', 'derya.a@email.com', 2022, 3.70, 1),
+(38, 'Efe', 'Sahin', 'efe.s@email.com', 2025, 3.10, 4),
+(39, 'Gamze', 'Celik', 'gamze.c@email.com', 2021, 3.90, 5),
+(40, 'Hakan', 'Yilmaz', 'hakan.y@email.com', 2023, 3.25, 6),
+(41, 'Ilayda', 'Dogan', 'ilayda.d@email.com', 2024, 3.60, 7),
+(42, 'Kamil', 'Koc', 'kamil.k@email.com', 2020, 2.95, 2),
+(43, 'Merve', 'Aslan', 'merve.a@email.com', 2025, 3.80, 1),
+(44, 'Ozan', 'Turan', 'ozan.t@email.com', 2022, 3.45, 3),
+(45, 'Pinar', 'Gunes', 'pinar.g@email.com', 2023, 3.55, 4),
+(46, 'Sarp', 'Ersoy', 'sarp.e@email.com', 2021, 3.15, 6),
+(47, 'Tugce', 'Aydin', 'tugce.a@email.com', 2024, 3.85, 5),
+(48, 'Ugur', 'Polat', 'ugur.p@email.com', 2025, 3.30, 7),
+(49, 'Yasemin', 'Kurt', 'yasemin.k@email.com', 2020, 3.75, 1),
+(50, 'Zeki', 'Demir', 'zeki.d@email.com', 2022, 2.80, 2);
 
--- Kariyer Geçmişi
 INSERT INTO Career_History (career_id, alumni_id, company_id, job_title, start_date, end_date, salary) VALUES
 (1, 1, 101, 'Data Analyst', '2025-06-01', '2026-01-15', 35000.00),
 (2, 1, 102, 'Data Scientist', '2026-02-01', NULL, 55000.00),
@@ -145,39 +149,26 @@ INSERT INTO Career_History (career_id, alumni_id, company_id, job_title, start_d
 (36, 31, 110, 'Senior Data Analyst', '2025-09-01', NULL, 58000.00),
 (37, 32, 107, 'Strategy Analyst', '2024-07-15', NULL, 49000.00),
 (38, 33, 105, 'Product Manager', '2021-08-01', NULL, 63000.00),
-(39, 34, 109, 'Project Manager', '2020-07-01', NULL, 85000.00);
+(39, 34, 109, 'Project Manager', '2020-07-01', NULL, 85000.00),
+(40, 35, 102, 'Software Developer', '2023-08-01', '2025-01-01', 45000.00),
+(41, 35, 106, 'Senior Developer', '2025-02-01', NULL, 60000.00),
+(42, 36, 105, 'Industrial Analyst', '2024-07-01', NULL, 42000.00),
+(43, 37, 101, 'Data Engineer', '2022-09-01', NULL, 65000.00),
+(44, 38, 104, 'Mechanical Designer', '2025-08-01', NULL, 48000.00),
+(45, 39, 108, 'Financial Advisor', '2021-08-01', '2024-05-01', 50000.00),
+(46, 39, 102, 'Finance Manager', '2024-06-01', NULL, 75000.00),
+(47, 40, 109, 'Electrical Engineer', '2023-07-15', NULL, 53000.00),
+(48, 41, 106, 'Frontend Engineer', '2024-09-01', NULL, 47000.00),
+(49, 42, 103, 'Network Support', '2020-08-01', '2023-03-01', 35000.00),
+(50, 42, 103, 'Network Admin', '2023-04-01', NULL, 52000.00),
+(51, 43, 110, 'Data Scientist', '2025-07-01', NULL, 58000.00),
+(52, 44, 105, 'Process Engineer', '2022-08-01', NULL, 46000.00),
+(53, 45, 107, 'Logistics Analyst', '2023-09-01', NULL, 49000.00),
+(54, 46, 109, 'Hardware Engineer', '2021-07-01', NULL, 55000.00),
+(55, 47, 102, 'HR Specialist', '2024-08-01', NULL, 41000.00),
+(56, 48, 106, 'Backend Developer', '2025-09-01', NULL, 54000.00),
+(57, 49, 101, 'Machine Learning Engineer', '2020-09-01', '2024-01-01', 62000.00),
+(58, 49, 104, 'AI Lead', '2024-02-01', NULL, 85000.00),
+(59, 50, 103, 'System Administrator', '2022-07-01', NULL, 48000.00);
 
--- TCL Komutu: Verileri kalıcı olarak kaydet
 COMMIT;
-
--- ==========================================
--- 3. DQL: ANALİZ VE RAPORLAMA SORGULARI (SELECT)
--- ==========================================
-
--- Rapor 1: Bölüm Bazlı Mezun Sayısı
-SELECT d.department_name, COUNT(a.alumni_id) AS total_alumni_count
-FROM Department d LEFT JOIN Alumni a ON d.department_id = a.department_id
-GROUP BY d.department_name;
-
--- Rapor 2: Sektör Bazlı İstihdam Dağılımı
-SELECT c.sector, COUNT(ch.career_id) AS employee_count
-FROM Career_History ch INNER JOIN Company c ON ch.company_id = c.company_id
-GROUP BY c.sector;
-
--- Rapor 3: Bölüm Bazlı Ortalama Maaş
-SELECT d.department_name, AVG(ch.salary) AS average_salary
-FROM Department d INNER JOIN Alumni a ON d.department_id = a.department_id
-INNER JOIN Career_History ch ON a.alumni_id = ch.alumni_id
-GROUP BY d.department_name;
-
--- Rapor 4: İş Değiştirme Oranı
-SELECT CAST(COUNT(ch.career_id) AS FLOAT) / COUNT(DISTINCT ch.alumni_id) AS average_job_turnover_rate
-FROM Career_History ch;
-
--- Rapor 5: Mezuniyet Yılına Göre İstihdam Oranı
-SELECT a.graduation_year, COUNT(DISTINCT a.alumni_id) AS total_alumni,
-COUNT(DISTINCT CASE WHEN ch.end_date IS NULL THEN ch.alumni_id END) AS active_employees,
-(CAST(COUNT(DISTINCT CASE WHEN ch.end_date IS NULL THEN ch.alumni_id END) AS FLOAT) / 
-NULLIF(COUNT(DISTINCT a.alumni_id), 0)) * 100 AS employment_rate_percentage
-FROM Alumni a LEFT JOIN Career_History ch ON a.alumni_id = ch.alumni_id
-GROUP BY a.graduation_year ORDER BY a.graduation_year;
