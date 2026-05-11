@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import pyodbc
+import sqlite3
+import os
 
 # ==========================================
 # SAYFA AYARLARI VE ÖZEL TASARIM (CSS)
@@ -68,19 +69,8 @@ def login_screen():
 # ==========================================
 def connect_db():
     try:
-        SERVER = 'localhost,1995' 
-        DATABASE = 'MezunKariyerSistemi'
-        USERNAME = 'sa' 
-        PASSWORD = 'adana123'
-        
-        conn = pyodbc.connect(
-            f'DRIVER={{ODBC Driver 17 for SQL Server}};'
-            f'SERVER={SERVER};'
-            f'DATABASE={DATABASE};'
-            f'UID={USERNAME};'
-            f'PWD={PASSWORD};'
-            f'TrustServerCertificate=yes;' 
-        )
+        db_path = os.path.join("database", "kariyer_sistemi.db")
+        conn = sqlite3.connect(db_path)
         return conn
     except Exception as e:
         st.error(f"Veritabanına bağlanılamadı: {e}")
@@ -93,7 +83,7 @@ def get_data(query):
     cursor = conn.cursor()
     cursor.execute(query)
     rows = cursor.fetchall()
-    columns = [column[0] for column in cursor.description]
+    columns = [desc[0] for desc in cursor.description]
     data = [tuple(row) for row in rows]
     df = pd.DataFrame(data, columns=columns)
     
@@ -103,6 +93,7 @@ def get_data(query):
                 df[col] = df[col].astype(float)
             except (ValueError, TypeError): # BURAYA TypeError EKLENDİ, ARTIK TARİHLERDE ÇÖKMEYECEK
                 pass
+    conn.close()
     return df
 
 # ==========================================
@@ -122,7 +113,8 @@ else:
         "🏢 2. Sektör Bazlı İstihdam",
         "💰 3. Bölüm Bazlı Ortalama Maaş",
         "🔄 4. İş Değiştirme Oranı",
-        "📈 5. Yıllara Göre İstihdam"
+        "📈 5. Yıllara Göre İstihdam",
+        "🎓 6. Mezun Verileri"
     ]
 
     secim = st.sidebar.radio("Sayfalar", menu)
@@ -138,13 +130,13 @@ else:
     # ANA SAYFA TASARIMI
     # ==========================================
     if secim == "🏠 Ana Sayfa":
-        df_alumni = get_data("SELECT COUNT(*) AS cnt FROM Alumni")
+        df_alumni = get_data("SELECT COUNT(*) AS cnt FROM Mezun")
         toplam_mezun = int(df_alumni['cnt'].iloc[0]) if not df_alumni.empty else 0
         
-        df_active = get_data("SELECT COUNT(DISTINCT alumni_id) AS cnt FROM Career_History WHERE end_date IS NULL")
+        df_active = get_data("SELECT COUNT(DISTINCT mezun_id) AS cnt FROM Kariyer_Gecmisi WHERE isten_cikis_tarihi IS NULL")
         aktif_calisan = int(df_active['cnt'].iloc[0]) if not df_active.empty else 0
         
-        df_company = get_data("SELECT COUNT(*) AS cnt FROM Company")
+        df_company = get_data("SELECT COUNT(*) AS cnt FROM Sirket")
         toplam_sirket = int(df_company['cnt'].iloc[0]) if not df_company.empty else 0
 
         st.markdown("""
@@ -199,26 +191,26 @@ else:
         st.write("Bir mezun seçerek tüm iş değişikliklerini kronolojik olarak inceleyebilirsiniz.")
         
         # Tüm mezunları isim-soyisim olarak çek
-        alumni_list_df = get_data("SELECT alumni_id, first_name + ' ' + last_name AS full_name FROM Alumni ORDER BY first_name")
+        alumni_list_df = get_data("SELECT mezun_id, ad || ' ' || soyad AS full_name FROM Mezun ORDER BY ad")
         
         if not alumni_list_df.empty:
             selected_name = st.selectbox("Lütfen İncelemek İstediğiniz Mezunu Seçin:", alumni_list_df['full_name'])
             
             # Seçilen ismin ID'sini bul
-            selected_id = alumni_list_df[alumni_list_df['full_name'] == selected_name]['alumni_id'].values[0]
+            selected_id = alumni_list_df[alumni_list_df['full_name'] == selected_name]['mezun_id'].values[0]
             
             # Seçilen mezunun tüm iş geçmişini getir (INNER JOIN ile şirket bilgilerini de alıyoruz)
             history_sql = f"""
-                SELECT ch.job_title AS [Pozisyon], 
-                       c.company_name AS [Şirket], 
-                       c.sector AS [Sektör], 
-                       ch.start_date AS [Giriş Tarihi], 
-                       ch.end_date AS [Ayrılma Tarihi], 
-                       ch.salary AS [Maaş]
-                FROM Career_History ch
-                INNER JOIN Company c ON ch.company_id = c.company_id
-                WHERE ch.alumni_id = {selected_id}
-                ORDER BY ch.start_date DESC
+                SELECT kg.pozisyon AS [Pozisyon], 
+                       s.sirket_adi AS [Şirket], 
+                       s.sektor AS [Sektör], 
+                       kg.ise_giris_tarihi AS [Giriş Tarihi], 
+                       kg.isten_cikis_tarihi AS [Ayrılma Tarihi], 
+                       kg.maas AS [Maaş]
+                FROM Kariyer_Gecmisi kg
+                INNER JOIN Sirket s ON kg.sirket_id = s.sirket_id
+                WHERE kg.mezun_id = {selected_id}
+                ORDER BY kg.ise_giris_tarihi DESC
             """
             history_df = get_data(history_sql)
             
@@ -240,25 +232,25 @@ else:
     # ==========================================
     elif secim == "📊 1. Bölüm Bazlı Mezun Sayısı":
         st.subheader("📊 Bölüm Bazlı Toplam Mezun Sayısı")
-        sql = "SELECT d.department_name, COUNT(a.alumni_id) AS total_alumni_count FROM Department d LEFT JOIN Alumni a ON d.department_id = a.department_id GROUP BY d.department_name;"
+        sql = "SELECT b.bolum_adi, COUNT(m.mezun_id) AS total_alumni_count FROM Bolum b LEFT JOIN Mezun m ON b.bolum_id = m.bolum_id GROUP BY b.bolum_adi;"
         df = get_data(sql)
-        st.bar_chart(data=df, x="department_name", y="total_alumni_count", color="#a91b1b")
+        st.bar_chart(data=df, x="bolum_adi", y="total_alumni_count", color="#a91b1b")
 
     elif secim == "🏢 2. Sektör Bazlı İstihdam":
         st.subheader("🏢 Sektör Bazlı İstihdam Dağılımı")
-        sql = "SELECT c.sector, COUNT(ch.career_id) AS employee_count FROM Career_History ch INNER JOIN Company c ON ch.company_id = c.company_id GROUP BY c.sector;"
+        sql = "SELECT s.sektor, COUNT(kg.kariyer_id) AS employee_count FROM Kariyer_Gecmisi kg INNER JOIN Sirket s ON kg.sirket_id = s.sirket_id GROUP BY s.sektor;"
         df = get_data(sql)
-        st.bar_chart(data=df, x="sector", y="employee_count", color="#a91b1b")
+        st.bar_chart(data=df, x="sektor", y="employee_count", color="#a91b1b")
 
     elif secim == "💰 3. Bölüm Bazlı Ortalama Maaş":
         st.subheader("💰 Bölümlere Göre Ortalama Maaş Analizi")
-        sql = "SELECT d.department_name, AVG(ch.salary) AS average_salary FROM Department d INNER JOIN Alumni a ON d.department_id = a.department_id INNER JOIN Career_History ch ON a.alumni_id = ch.alumni_id GROUP BY d.department_name;"
+        sql = "SELECT b.bolum_adi, AVG(kg.maas) AS average_salary FROM Bolum b INNER JOIN Mezun m ON b.bolum_id = m.bolum_id INNER JOIN Kariyer_Gecmisi kg ON m.mezun_id = kg.mezun_id GROUP BY b.bolum_adi;"
         df = get_data(sql)
-        st.bar_chart(data=df, x="department_name", y="average_salary", color="#a91b1b")
+        st.bar_chart(data=df, x="bolum_adi", y="average_salary", color="#a91b1b")
 
     elif secim == "🔄 4. İş Değiştirme Oranı":
         st.subheader("🔄 Ortalama İş Değiştirme Oranı")
-        sql = "SELECT (COUNT(ch.career_id) * 1.0) / COUNT(DISTINCT ch.alumni_id) AS average_job_turnover_rate FROM Career_History ch;"
+        sql = "SELECT (COUNT(kg.kariyer_id) * 1.0) / COUNT(DISTINCT kg.mezun_id) AS average_job_turnover_rate FROM Kariyer_Gecmisi kg;"
         df = get_data(sql)
         oran = df['average_job_turnover_rate'].iloc[0] if not df.empty else 0
         st.metric(label="Mezun Başına Düşen Ortalama İş Sayısı", value=f"{oran:.2f}")
@@ -266,14 +258,37 @@ else:
     elif secim == "📈 5. Yıllara Göre İstihdam":
         st.subheader("📈 Mezuniyet Yılına Göre İstihdam Oranı (%)")
         sql = """
-        SELECT a.graduation_year, 
-        ((COUNT(DISTINCT CASE WHEN ch.end_date IS NULL THEN ch.alumni_id END) * 1.0) / 
-        NULLIF(COUNT(DISTINCT a.alumni_id), 0)) * 100 AS employment_rate_percentage
-        FROM Alumni a LEFT JOIN Career_History ch ON a.alumni_id = ch.alumni_id
-        GROUP BY a.graduation_year 
-        ORDER BY a.graduation_year;
+        SELECT m.mezuniyet_yili, 
+        ((COUNT(DISTINCT CASE WHEN kg.isten_cikis_tarihi IS NULL THEN kg.mezun_id END) * 1.0) / 
+        NULLIF(COUNT(DISTINCT m.mezun_id), 0)) * 100 AS employment_rate_percentage
+        FROM Mezun m LEFT JOIN Kariyer_Gecmisi kg ON m.mezun_id = kg.mezun_id
+        GROUP BY m.mezuniyet_yili 
+        ORDER BY m.mezuniyet_yili;
         """
         df = get_data(sql)
         if not df.empty:
-            df['graduation_year'] = df['graduation_year'].astype(str)
-            st.line_chart(data=df, x="graduation_year", y="employment_rate_percentage", color="#a91b1b")
+            df['mezuniyet_yili'] = df['mezuniyet_yili'].astype(str)
+            st.line_chart(data=df, x="mezuniyet_yili", y="employment_rate_percentage", color="#a91b1b")
+
+    elif secim == "🎓 6. Mezun Verileri":
+        st.subheader("🎓 6. Mezun Verileri")
+        st.write("Tüm mezunları ve temel bilgilerini bu ekranda görüntüleyebilirsiniz.")
+        alumni_sql = """
+            SELECT m.mezun_id AS "Mezun ID",
+                   m.ad AS "Ad",
+                   m.soyad AS "Soyad",
+                   m.iletisim_bilgisi AS "İletişim",
+                   m.mezuniyet_yili AS "Mezuniyet Yılı",
+                   m.not_ortalamasi AS "Not Ortalaması",
+                   b.bolum_adi AS "Bölüm"
+            FROM Mezun m
+            LEFT JOIN Bolum b ON m.bolum_id = b.bolum_id
+            ORDER BY m.mezun_id;
+        """
+        alumni_df = get_data(alumni_sql)
+        if alumni_df.empty:
+            st.warning("Veritabanında görüntülenecek mezun verisi bulunamadı.")
+        else:
+            st.success(f"Toplam {len(alumni_df)} mezun kaydı bulundu.")
+            st.dataframe(alumni_df, use_container_width=True)
+
